@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">{{ city_label }}Rental Analyzer</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-hover: #334155;
+    --accent: #3b82f6;
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  header { text-align: center; padding: 30px 0 20px; }
+  header h1 { font-size: 28px; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+  .lang-switcher {
+    position: fixed; top: 12px; right: 16px; z-index: 50;
+    display: flex; gap: 2px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 3px; font-size: 12px;
+  }
+  .lang-btn {
+    padding: 4px 10px; border: none; border-radius: 6px; cursor: pointer;
+    background: transparent; color: var(--muted); font-weight: 600; font-size: 12px;
+  }
+  .lang-btn.active { background: var(--accent); color: #fff; }
+
+  .budget-bar {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    margin: 16px 0 24px; padding: 12px; background: var(--card);
+    border-radius: 10px; border: 1px solid var(--border);
+  }
+  .budget-item { text-align: center; }
+  .budget-item .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .budget-item .value { font-size: 20px; font-weight: 700; color: var(--accent); }
+
+  .input-section {
+    background: var(--card); border-radius: 12px; padding: 20px;
+    border: 1px solid var(--border); margin-bottom: 20px;
+  }
+  .input-section label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 8px; }
+  .input-section textarea {
+    width: 100%; min-height: 100px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    font-size: 13px; font-family: monospace; resize: vertical;
+  }
+  .input-section textarea:focus { outline: none; border-color: var(--accent); }
+  .input-section textarea::placeholder { color: #475569; }
+
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; }
+  .btn {
+    padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--card-hover); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #475569; }
+
+  .progress-bar {
+    display: none; margin: 16px 0; padding: 14px; background: var(--card);
+    border-radius: 10px; border: 1px solid var(--border);
+  }
+  .progress-bar.active { display: block; }
+  .progress-track { height: 6px; background: var(--bg); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+  .progress-text { font-size: 13px; color: var(--muted); }
+
+  .results-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 24px 0 12px;
+  }
+  .results-header h2 { font-size: 18px; }
+  .sort-btns { display: flex; gap: 6px; }
+  .sort-btn {
+    padding: 4px 12px; font-size: 12px; background: var(--card); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+  }
+  .sort-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .cards { display: grid; gap: 14px; }
+
+  .card {
+    background: var(--card); border-radius: 12px; padding: 18px;
+    border: 1px solid var(--border); transition: all 0.2s;
+    display: grid; grid-template-columns: 50px 1fr auto; gap: 14px; align-items: start;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .card.over-budget { border-left: 3px solid var(--red); opacity: 0.7; }
+  .card.within-budget { border-left: 3px solid var(--green); }
+
+  .rank {
+    font-size: 24px; font-weight: 800; color: var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 10px; background: var(--bg);
+  }
+  .rank.top3 { color: var(--orange); }
+
+  .card-body { min-width: 0; }
+  .card-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .card-title a { color: var(--text); text-decoration: none; }
+  .card-title a:hover { color: var(--accent); }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+  }
+  .tag-blue { background: #1e40af33; color: #60a5fa; }
+  .tag-green { background: #16653433; color: #4ade80; }
+  .tag-red { background: #7f1d1d33; color: #f87171; }
+  .tag-orange { background: #78350f33; color: #fbbf24; }
+  .tag-gray { background: #1e293b; color: var(--muted); }
+
+  .card-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 6px; margin-top: 8px;
+  }
+  .card-stat { }
+  .card-stat .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .card-stat .stat-value { font-size: 14px; font-weight: 600; }
+
+  .card-right { text-align: right; min-width: 130px; }
+  .monthly-total { font-size: 22px; font-weight: 800; }
+  .monthly-total.ok { color: var(--green); }
+  .monthly-total.ng { color: var(--red); }
+  .remaining { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .score-badge {
+    display: inline-block; margin-top: 6px; padding: 3px 10px;
+    border-radius: 6px; font-size: 12px; font-weight: 700;
+  }
+  .score-high { background: #16653433; color: #4ade80; }
+  .score-mid { background: #78350f33; color: #fbbf24; }
+  .score-low { background: #7f1d1d33; color: #f87171; }
+
+  .btn-delete {
+    margin-top: 8px; padding: 2px 10px; background: none; border: 1px solid #7f1d1d55;
+    color: var(--muted); border-radius: 4px; cursor: pointer; font-size: 11px;
+  }
+  .btn-delete:hover { color: var(--red); border-color: var(--red); }
+
+  .batch-bar {
+    display: none; position: sticky; top: 0; z-index: 100;
+    background: #1e3a5f; border: 1px solid var(--accent); border-radius: 10px;
+    padding: 10px 16px; margin-bottom: 12px;
+    align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .batch-bar.active { display: flex; }
+  .batch-bar .batch-info { font-size: 14px; font-weight: 600; }
+  .batch-bar .batch-actions { display: flex; gap: 8px; }
+  .batch-bar .btn-batch {
+    padding: 6px 14px; border: none; border-radius: 6px; font-size: 12px;
+    font-weight: 600; cursor: pointer;
+  }
+  .btn-batch-del { background: var(--red); color: #fff; }
+  .btn-batch-del:hover { background: #dc2626; }
+  .btn-batch-cancel { background: var(--card-hover); color: var(--text); }
+  .btn-batch-cancel:hover { background: #475569; }
+  .btn-batch-all { background: var(--accent); color: #fff; }
+  .btn-batch-all:hover { background: #2563eb; }
+
+  .card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,0.3); }
+  .card-checkbox {
+    position: absolute; top: 12px; left: 12px; width: 20px; height: 20px;
+    accent-color: var(--accent); cursor: pointer; display: none;
+  }
+  .select-mode .card-checkbox { display: block; }
+  .card-wrapper { position: relative; }
+
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; max-width: 450px; width: 90%;
+  }
+  .modal h3 { font-size: 16px; margin-bottom: 14px; }
+  .modal-close { float: right; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; }
+  .modal-close:hover { color: var(--text); }
+  .cost-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cost-table td { padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .cost-table td:last-child { text-align: right; font-weight: 600; }
+  .cost-table tr.total td { border-top: 2px solid var(--accent); font-size: 15px; font-weight: 800; color: var(--accent); }
+  .cost-table tr.section td { color: var(--muted); font-size: 11px; padding-top: 12px; border-bottom: none; }
+
+  .set-label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+  .set-input {
+    width: 100%; padding: 6px 8px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+  }
+  .set-input:focus { outline: none; border-color: var(--accent); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state p { font-size: 14px; margin-top: 8px; }
+
+  .criteria-summary {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px; margin: 10px 0 20px; font-size: 12px; color: var(--muted);
+  }
+  .criteria-item { display: flex; gap: 6px; align-items: center; }
+  .criteria-item .ci-label { font-weight: 600; color: var(--text); }
+
+  @media (max-width: 768px) {
+    .card { grid-template-columns: 1fr; }
+    .rank { width: auto; height: auto; padding: 4px 10px; font-size: 14px; }
+    .card-right { text-align: left; margin-top: 8px; }
+  }
+
+  /* Onboarding Wizard */
+  .onboarding-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85); z-index: 300;
+    align-items: center; justify-content: center;
+  }
+  .onboarding-overlay.active { display: flex; }
+  .onboarding {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 0; max-width: 520px; width: 92%; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .ob-header { padding: 28px 28px 0; text-align: center; }
+  .ob-icon { font-size: 48px; margin-bottom: 10px; }
+  .ob-header h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .ob-header p { color: var(--muted); font-size: 13px; margin-bottom: 0; }
+  .ob-progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 16px 28px 0; }
+  .ob-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.4s ease; }
+  .ob-body { padding: 20px 28px 8px; }
+  .ob-step { display: none; }
+  .ob-step.active { display: block; }
+  .ob-step h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .ob-step h3 .step-icon { font-size: 20px; }
+  .ob-field { margin-bottom: 12px; }
+  .ob-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+  .ob-field input, .ob-field select {
+    width: 100%; padding: 10px 12px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; font-size: 14px; transition: border-color 0.2s;
+  }
+  .ob-field input:focus, .ob-field select:focus { outline: none; border-color: var(--accent); }
+  .ob-field .ob-hint { font-size: 11px; color: #64748b; margin-top: 3px; }
+  .ob-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ob-footer { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px 24px; }
+  .ob-footer .btn { min-width: 100px; }
+  .ob-skip { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 6px 0; }
+  .ob-skip:hover { color: var(--text); }
+  .ob-lang-row { display: flex; gap: 6px; justify-content: center; margin: 16px 0 4px; }
+  .ob-lang-btn {
+    padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;
+    background: var(--bg); color: var(--muted); border: 2px solid var(--border); transition: all 0.2s;
+  }
+  .ob-lang-btn.active { border-color: var(--accent); color: var(--accent); }
+  .ob-lang-btn:hover { border-color: var(--accent); }
+
+  /* Detail modal */
+  .detail-modal { max-width: 580px; max-height: 85vh; overflow-y: auto; }
+  .detail-modal h3 { font-size: 17px; margin-bottom: 4px; }
+  .detail-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .detail-sub a { color: var(--accent); }
+  .detail-section { margin-bottom: 16px; }
+  .detail-section-title {
+    font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; padding-bottom: 6px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+  }
+  .detail-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+  }
+  .detail-item { font-size: 13px; padding: 3px 0; }
+  .detail-item .dl { color: var(--muted); font-size: 11px; }
+  .detail-item .dv { font-weight: 600; }
+  .detail-item.full { grid-column: 1 / -1; }
+  .detail-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+  .detail-facilities { font-size: 12px; color: var(--text); line-height: 1.8; }
+  .detail-facilities span {
+    display: inline-block; background: var(--bg); padding: 2px 8px; border-radius: 4px;
+    margin: 2px 2px; font-size: 11px;
+  }
+  .detail-remarks {
+    font-size: 12px; color: var(--muted); line-height: 1.6;
+    background: var(--bg); padding: 10px 12px; border-radius: 8px;
+    max-height: 120px; overflow-y: auto;
+  }
+
+  /* Commute searching pulse */
+  .commute-pulse { animation: cpulse 1.2s ease-in-out infinite; }
+  @keyframes cpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Searchable Dropdown */
+  .combo-wrap { position: relative; }
+  .combo-wrap input { width: 100%; }
+  .combo-list {
+    display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    max-height: 220px; overflow-y: auto; background: var(--card); border: 1px solid var(--accent);
+    border-radius: 0 0 8px 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .combo-list.open { display: block; }
+  .combo-item {
+    padding: 8px 12px; cursor: pointer; font-size: 13px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .combo-item:last-child { border-bottom: none; }
+  .combo-item:hover, .combo-item.active { background: var(--accent); color: #fff; }
+  .combo-item .combo-sub { font-size: 11px; color: var(--muted); }
+  .combo-item:hover .combo-sub, .combo-item.active .combo-sub { color: rgba(255,255,255,0.7); }
+  .combo-item .combo-region { font-size: 10px; opacity: 0.6; }
+</style>
+</head>
+<body>
+
+<div class="lang-switcher" id="langSwitcher">
+  <button class="lang-btn" onclick="setLang('zh')">中文</button>
+  <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+  <button class="lang-btn" onclick="setLang('en')">EN</button>
+</div>
+
+<div class="container">
+  <header>
+    <h1><span>HOMES</span> <span id="headerTitle"></span></h1>
+    <p id="headerSub"></p>
+  </header>
+
+  <div class="budget-bar" id="budgetBar"></div>
+  <div class="criteria-summary" id="criteriaSummary"></div>
+
+  <button class="btn btn-secondary" style="width:100%;margin-bottom:16px;padding:8px;font-size:13px" onclick="toggleSettings();" id="btnSettings"></button>
+
+  <div class="input-section" id="settingsPanel" style="display:none">
+    <h3 style="margin-bottom:12px;font-size:15px" id="settingsTitle"></h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+      <div><label class="set-label" data-i18n="cfg_salary"></label><input type="number" id="cfgSalary" class="set-input"></div>
+      <div><label class="set-label" data-i18n="cfg_expenses"></label><input type="number" id="cfgExpenses" class="set-input"></div>
+      <div><label class="set-label" data-i18n="cfg_city"></label><div class="combo-wrap"><input type="text" id="cfgCityLabel" class="set-input" autocomplete="off"><div class="combo-list" id="cfgCityList"></div></div></div>
+      <div><label class="set-label" data-i18n="cfg_station"></label><input type="text" id="cfgOfficeLabel" class="set-input"></div>
+      <div><label class="set-label" data-i18n="cfg_address"></label><input type="text" id="cfgOfficeAddr" class="set-input"></div>
+      <div><label class="set-label" data-i18n="cfg_commute"></label><input type="number" id="cfgCurrentCommute" class="set-input"></div>
+      <div><label class="set-label" data-i18n="cfg_walk"></label><input type="number" id="cfgMaxWalk" class="set-input"></div>
+      <div><label class="set-label" data-i18n="cfg_commute_mode"></label><select id="cfgCommuteMode" class="set-input"><option value="train"></option><option value="walk"></option><option value="bike"></option><option value="car"></option></select></div>
+    </div>
+    <h4 style="margin:14px 0 8px;font-size:13px;color:var(--muted)" data-i18n="cfg_weights"></h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px">
+      <div><label class="set-label" data-i18n="w_corner"></label><input type="number" id="scCorner" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_south"></label><input type="number" id="scSouth" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_east"></label><input type="number" id="scEast" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_north"></label><input type="number" id="scNorth" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_floor5"></label><input type="number" id="scFloor5" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_floor3"></label><input type="number" id="scFloor3" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_area"></label><input type="number" id="scArea" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_room"></label><input type="number" id="scRoom" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_new"></label><input type="number" id="scNew" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_mid"></label><input type="number" id="scMid" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_budget"></label><input type="number" id="scBudget" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_immediate"></label><input type="number" id="scImmediate" class="set-input"></div>
+      <div><label class="set-label" data-i18n="w_internet"></label><input type="number" id="scInternet" class="set-input"></div>
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn btn-primary" onclick="saveSettings()" data-i18n="cfg_save"></button>
+      <button class="btn btn-secondary" onclick="toggleSettings()" data-i18n="cancel"></button>
+    </div>
+  </div>
+
+  <div class="input-section">
+    <label data-i18n="url_label"></label>
+    <textarea id="urlInput"></textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnScrape" onclick="startScrape()" data-i18n="btn_analyze"></button>
+      <button class="btn btn-secondary" onclick="loadExisting()" data-i18n="btn_load"></button>
+      <button class="btn btn-secondary" onclick="clearAll()" data-i18n="btn_clear"></button>
+    </div>
+  </div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-text" id="progressText"></div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="resultsSection" style="display:none">
+    <div class="results-header">
+      <h2><span data-i18n="results"></span> <span id="resultCount" style="color:var(--muted);font-size:14px"></span></h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="sort-btns">
+          <button class="sort-btn active" onclick="sortBy('score')" data-i18n="sort_score"></button>
+          <button class="sort-btn" onclick="sortBy('monthly_total')" data-i18n="sort_monthly"></button>
+          <button class="sort-btn" onclick="sortBy('rent_num')" data-i18n="sort_rent"></button>
+          <button class="sort-btn" onclick="sortBy('area_num')" data-i18n="sort_area"></button>
+          <button class="sort-btn" onclick="sortBy('age')" data-i18n="sort_age"></button>
+          <button class="sort-btn" onclick="sortBy('commute_min')" data-i18n="sort_commute"></button>
+        </div>
+        <button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="startCommute()" id="btnCommute" data-i18n="btn_commute"></button>
+        <button class="btn btn-primary" style="padding:4px 12px;font-size:12px;background:var(--orange)" onclick="startTeiki()" id="btnTeiki" data-i18n="btn_teiki"></button>
+        <button class="btn-secondary btn" style="padding:4px 12px;font-size:12px" onclick="toggleSelectMode();" id="btnSelectMode" data-i18n="btn_select"></button>
+      </div>
+    </div>
+
+    <div class="batch-bar" id="batchBar">
+      <div class="batch-info"><span data-i18n="selected"></span> <span id="selectedCount">0</span></div>
+      <div class="batch-actions">
+        <button class="btn-batch btn-batch-all" onclick="selectAll()" data-i18n="select_all"></button>
+        <button class="btn-batch btn-batch-all" onclick="selectNone()" style="background:var(--card-hover)" data-i18n="deselect_all"></button>
+        <button class="btn-batch btn-batch-del" onclick="deleteSelected()" data-i18n="delete_selected"></button>
+        <button class="btn-batch btn-batch-cancel" onclick="toggleSelectMode()" data-i18n="exit_select"></button>
+      </div>
+    </div>
+
+    <div class="cards" id="cardsContainer"></div>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <p style="font-size:28px">&#x1F3E0;</p>
+    <p data-i18n="empty_hint"></p>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px">
+      <a href="https://www.homes.co.jp/chintai/" target="_blank" class="btn btn-primary" style="padding:8px 20px;font-size:13px;text-decoration:none">HOMES.co.jp</a>
+      <a href="https://suumo.jp/chintai/" target="_blank" class="btn btn-secondary" style="padding:8px 20px;font-size:13px;text-decoration:none">SUUMO.jp</a>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px" data-i18n="empty_sites_hint"></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+  <div class="modal detail-modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Onboarding Wizard -->
+<div class="onboarding-overlay" id="onboardingOverlay">
+  <div class="onboarding">
+    <div class="ob-header">
+      <div class="ob-icon" id="obIcon">&#x1F3E0;</div>
+      <h2 id="obTitle"></h2>
+      <p id="obSubtitle"></p>
+    </div>
+    <div class="ob-progress-bar"><div class="ob-progress-fill" id="obProgressFill" style="width:25%"></div></div>
+    <div class="ob-body">
+      <!-- Step 0: Language -->
+      <div class="ob-step active" id="obStep0">
+        <h3 id="obLangTitle"></h3>
+        <div class="ob-lang-row">
+          <button class="ob-lang-btn" data-lang="zh" onclick="obSetLang('zh')">&#x1F1F9;&#x1F1FC; 繁體中文</button>
+          <button class="ob-lang-btn" data-lang="ja" onclick="obSetLang('ja')">&#x1F1EF;&#x1F1F5; 日本語</button>
+          <button class="ob-lang-btn" data-lang="en" onclick="obSetLang('en')">&#x1F1FA;&#x1F1F8; English</button>
+        </div>
+      </div>
+      <!-- Step 1: Location -->
+      <div class="ob-step" id="obStep1">
+        <h3><span class="step-icon">&#x1F4CD;</span> <span id="obLocTitle"></span></h3>
+        <div class="ob-field"><label id="obCityLbl"></label><div class="combo-wrap"><input type="text" id="obCity" autocomplete="off"><div class="combo-list" id="obCityList"></div></div><div class="ob-hint" id="obCityHint"></div></div>
+        <div class="ob-field"><label id="obStationLbl"></label><input type="text" id="obStation"><div class="ob-hint" id="obStationHint"></div></div>
+        <div class="ob-field"><label id="obAddrLbl"></label><input type="text" id="obAddress"><div class="ob-hint" id="obAddrHint"></div></div>
+      </div>
+      <!-- Step 2: Budget -->
+      <div class="ob-step" id="obStep2">
+        <h3><span class="step-icon">&#x1F4B0;</span> <span id="obBudgetTitle"></span></h3>
+        <div class="ob-row">
+          <div class="ob-field"><label id="obSalaryLbl"></label><input type="number" id="obSalary" placeholder="250000"></div>
+          <div class="ob-field"><label id="obExpLbl"></label><input type="number" id="obExpenses" placeholder="150000"><div class="ob-hint" id="obExpHint"></div></div>
+        </div>
+        <div class="ob-field" style="margin-top:8px;padding:14px;background:var(--bg);border-radius:8px;text-align:center">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px" id="obBudgetLabel"></div>
+          <div id="obBudgetPreview" style="font-size:28px;font-weight:800;color:var(--accent)">&#8212;</div>
+        </div>
+        <div class="ob-row">
+          <div class="ob-field"><label id="obCommuteModeLbl"></label>
+            <select id="obCommuteMode"><option value="train" id="obModeTrain"></option><option value="walk" id="obModeWalk"></option><option value="bike" id="obModeBike"></option><option value="car" id="obModeCar"></option></select>
+          </div>
+          <div class="ob-field"><label id="obCommuteLbl"></label><input type="number" id="obCurrentCommute" placeholder="30"></div>
+        </div>
+      </div>
+      <!-- Step 3: Preferences -->
+      <div class="ob-step" id="obStep3">
+        <h3><span class="step-icon">&#x2B50;</span> <span id="obPrefTitle"></span></h3>
+        <div class="ob-row">
+          <div class="ob-field"><label id="obFloorLbl"></label><input type="number" id="obMinFloor" value="5" min="1"></div>
+          <div class="ob-field"><label id="obAreaLbl"></label><input type="number" id="obMinArea" value="25" min="10"></div>
+        </div>
+        <div class="ob-row">
+          <div class="ob-field"><label id="obRoomLbl"></label><input type="number" id="obMinRoom" value="6.5" step="0.5" min="3"></div>
+          <div class="ob-field"><label id="obWalkLbl"></label><input type="number" id="obMaxWalk" value="15" min="1"></div>
+        </div>
+        <div class="ob-field"><label id="obCornerLbl"></label>
+          <select id="obCorner"><option value="true" id="obCornerY"></option><option value="false" id="obCornerN"></option></select>
+        </div>
+        <div style="margin-top:12px;padding:14px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.6" id="obPrefNote"></div>
+      </div>
+    </div>
+    <div class="ob-footer">
+      <button class="ob-skip" id="obSkipBtn" onclick="skipOnboarding()"></button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" id="obBackBtn" onclick="obBack()" style="display:none"></button>
+        <button class="btn btn-primary" id="obNextBtn" onclick="obNext()"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// i18n
+// ══════════════════════════════════════
+const LANGS = {
+zh: {
+  // Header
+  title_suffix: "租屋分析器",
+  subtitle: "貼上 HOMES.co.jp 物件連結，自動分析排名",
+  // Budget bar
+  take_home: "手取り", fixed_exp: "固定支出", housing_limit: "住宅上限",
+  workplace: "工作地點", current_to: "現住所→", min_unit: "分", company: "公司",
+  // Criteria
+  corner_unit: "角部屋", required: "強制", preferred: "偏好",
+  pref_orient: "偏好朝向", high_floor: "高樓層",
+  // Settings
+  settings: "設定", hide_settings: "收起設定", settings_title: "個人設定",
+  cfg_salary: "手取り（円/月）", cfg_expenses: "固定支出（円/月）",
+  cfg_city: "城市", cfg_station: "公司最近車站", cfg_address: "公司地址",
+  cfg_commute: "現住所通勤時間（分）", cfg_walk: "最遠徒步距離（分）",
+  cfg_commute_mode: "通勤方式",
+  mode_train: "電車", mode_walk: "步行", mode_bike: "腳踏車", mode_car: "開車",
+  cfg_weights: "評分權重", cfg_save: "儲存並重新分析", cancel: "取消",
+  w_corner: "角部屋", w_south: "南向", w_east: "東/南東/南西", w_north: "北向（負分）",
+  w_floor5: "高樓層(5F+)", w_floor3: "中樓層(3F+)", w_area: "面積25㎡+",
+  w_room: "洋室6.5帖+", w_new: "築10年內", w_mid: "築20年內",
+  w_budget: "預算內", w_immediate: "即入居", w_internet: "網路免費",
+  // URL input
+  url_label: "HOMES 物件連結（每行一個，或一次貼多個）",
+  url_placeholder: "支援 HOMES + SUUMO，混貼也行：\nhttps://www.homes.co.jp/chintai/b-...\nhttps://suumo.jp/chintai/...",
+  btn_analyze: "開始分析", btn_load: "載入已有資料", btn_clear: "清除",
+  preparing: "準備中...",
+  // Results
+  results: "分析結果", count_fmt: "{total}件中 {ok}件在預算內",
+  sort_score: "推薦度", sort_monthly: "月額", sort_rent: "賃料",
+  sort_area: "面積", sort_age: "築年", sort_commute: "通勤",
+  btn_commute: "查通勤時間", btn_teiki: "查定期代",
+  btn_select: "批量選取", btn_deselect: "取消選取",
+  selected: "已選", select_all: "全選", deselect_all: "取消全選",
+  delete_selected: "刪除所選", exit_select: "退出選取",
+  // Cards
+  rent_mgmt: "賃料+管理", teiki: "定期代", nearest: "最寄駅",
+  commute_time: "通勤時間", area: "面積", layout: "間取り",
+  deposit_key: "敷/礼", initial_cost: "初期費用",
+  remaining_label: "餘額", not_queried: "未查詢", commute_searching: "查詢中...", commute_failed: "無法取得路線", door_to_door: "door-to-door",
+  fetch_failed: "取得失敗", data_fail: "資料取得失敗",
+  non_corner: "非角部屋", south: "南向", north: "北向", west: "西向",
+  net_free: "網路免費", move_now: "即入居", commute_x_min: "通勤{x}分",
+  teiki_unknown: "定期代未知", zero_deposit: "敷礼0",
+  foreigner_ok: "外国人OK", foreigner_ng: "外国人NG",
+  per_month: "円/月",
+  // Modal
+  initial_detail: "初期費用明細", move_in_cost: "入居時一次費用",
+  deposit: "敷金", key_money: "礼金", guarantor_init: "保証会社初回",
+  agency_fee: "仲介手数料", first_month: "初月家賃+管理費",
+  fire_insurance: "火災保険（概算）", initial_total: "初期費用合計",
+  monthly_extra: "月額追加費用", monthly_total_label: "月額合計（賃料+管理+定期+追加）",
+  monthly_spend: "每月支出", need_confirm: "要確認", unknown: "不明",
+  // Detail sections
+  sec_basic: "基本資訊", sec_cost: "費用", sec_initial: "初期費用",
+  sec_commute: "通勤", sec_building: "建物 & 設備", sec_surround: "周邊環境", sec_remarks: "備考",
+  d_address: "地址", d_station: "車站", d_layout: "間取", d_layout_detail: "間取詳細",
+  d_area: "面積", d_floor: "樓層", d_orientation: "朝向", d_built: "建造年",
+  d_age: "屋齡", d_status: "現況", d_movein: "入居時期", d_position: "位置",
+  d_foreigner: "外國人", d_conditions: "入居條件",
+  d_rent: "賃料", d_mgmt: "管理費", d_teiki: "定期代", d_monthly: "月額合計", d_remaining: "餘額",
+  d_extra: "月額追加", d_commute_time: "通勤時間", d_commute_mode: "通勤方式", d_commute_route: "路線",
+  d_structure: "建物構造", d_parking: "駐車場", d_units: "總戶數",
+  d_contract: "契約期間", d_guarantor: "保證會社", d_insurance: "住宅保険",
+  d_management: "管理", d_transaction: "取引態様",
+  d_facilities: "設備", d_kitchen: "廚房", d_bath: "衛浴",
+  d_shopping: "購物", d_medical: "醫療", d_school: "學校",
+  d_public: "公共機關", d_finance: "金融", d_other_fac: "其他設施",
+  // Confirms
+  confirm_clear: "所有記錄將被刪除，確定嗎？",
+  confirm_delete: "確定刪除這筆物件？",
+  confirm_delete_n: "確定刪除 {n} 筆物件？",
+  // Progress
+  commute_searching: "Google Maps 通勤時間查詢中...（Chrome 會自動開啟）",
+  teiki_searching: "NAVITIME 定期代查詢中...",
+  searching: "查詢中...",
+  // Empty
+  empty_hint: "在上方貼上 HOMES 物件連結開始分析",
+  empty_sites_hint: "先到以下網站搜尋物件，複製網址後貼回這裡",
+  // Onboarding
+  ob_welcome: "歡迎", ob_welcome_sub: "讓我們設定你的租屋搜尋條件",
+  ob_lang_title: "選擇語言",
+  ob_loc_title: "工作地點", ob_city: "城市", ob_city_hint: "用於頁面標題和搜尋",
+  ob_station: "公司最近車站", ob_station_hint: "用於計算通勤定期券",
+  ob_addr: "公司完整地址", ob_addr_hint: "用於 Google Maps 通勤時間",
+  ob_budget_title: "預算", ob_salary: "月薪手取り（円）", ob_expenses: "固定支出（円）",
+  ob_exp_hint: "不含房租", ob_budget_label: "住宅預算（自動計算）",
+  ob_commute: "目前通勤時間（分鐘）", ob_commute_mode: "通勤方式",
+  ob_pref_title: "偏好條件", ob_floor: "最低樓層", ob_area: "最小面積（m2）",
+  ob_room: "最小房間大小（帖）", ob_walk: "最遠徒步距離（分鐘）",
+  ob_corner_lbl: "角部屋？", ob_corner_y: "必須", ob_corner_n: "偏好，非必須",
+  ob_pref_note: "評分權重可以之後在設定中微調。",
+  ob_skip: "跳過", ob_back: "上一步", ob_next: "下一步", ob_start: "開始使用",
+},
+ja: {
+  title_suffix: "賃貸分析ツール",
+  subtitle: "HOMES.co.jp の物件URLを貼り付けて自動分析",
+  take_home: "手取り", fixed_exp: "固定支出", housing_limit: "住居上限",
+  workplace: "勤務地", current_to: "現住所→", min_unit: "分", company: "会社",
+  corner_unit: "角部屋", required: "必須", preferred: "希望",
+  pref_orient: "希望向き", high_floor: "高層階",
+  settings: "設定", hide_settings: "設定を閉じる", settings_title: "個人設定",
+  cfg_salary: "手取り（円/月）", cfg_expenses: "固定支出（円/月）",
+  cfg_city: "都市", cfg_station: "勤務先最寄駅", cfg_address: "勤務先住所",
+  cfg_commute: "現在の通勤時間（分）", cfg_walk: "最大徒歩距離（分）",
+  cfg_commute_mode: "通勤手段",
+  mode_train: "電車", mode_walk: "徒歩", mode_bike: "自転車", mode_car: "車",
+  cfg_weights: "スコア配点", cfg_save: "保存して再分析", cancel: "キャンセル",
+  w_corner: "角部屋", w_south: "南向き", w_east: "東/南東/南西", w_north: "北向き（減点）",
+  w_floor5: "高層階(5F+)", w_floor3: "中層階(3F+)", w_area: "面積25㎡+",
+  w_room: "洋室6.5帖+", w_new: "築10年以内", w_mid: "築20年以内",
+  w_budget: "予算内", w_immediate: "即入居", w_internet: "ネット無料",
+  url_label: "HOMES 物件URL（1行に1つ、まとめて貼付OK）",
+  url_placeholder: "HOMES + SUUMO 対応：\nhttps://www.homes.co.jp/chintai/b-...\nhttps://suumo.jp/chintai/...",
+  btn_analyze: "分析開始", btn_load: "既存データ読込", btn_clear: "クリア",
+  preparing: "準備中...",
+  results: "分析結果", count_fmt: "{total}件中 {ok}件が予算内",
+  sort_score: "おすすめ", sort_monthly: "月額", sort_rent: "賃料",
+  sort_area: "面積", sort_age: "築年", sort_commute: "通勤",
+  btn_commute: "通勤時間検索", btn_teiki: "定期代検索",
+  btn_select: "一括選択", btn_deselect: "選択解除",
+  selected: "選択中", select_all: "全選択", deselect_all: "全解除",
+  delete_selected: "選択を削除", exit_select: "選択終了",
+  rent_mgmt: "賃料+管理", teiki: "定期代", nearest: "最寄駅",
+  commute_time: "通勤時間", area: "面積", layout: "間取り",
+  deposit_key: "敷/礼", initial_cost: "初期費用",
+  remaining_label: "残額", not_queried: "未検索", commute_searching: "検索中...", commute_failed: "ルート取得不可", door_to_door: "door-to-door",
+  fetch_failed: "取得失敗", data_fail: "データ取得に失敗しました",
+  non_corner: "非角部屋", south: "南向き", north: "北向き", west: "西向き",
+  net_free: "ネット無料", move_now: "即入居", commute_x_min: "通勤{x}分",
+  teiki_unknown: "定期代未知", zero_deposit: "敷礼0",
+  foreigner_ok: "外国人OK", foreigner_ng: "外国人NG",
+  per_month: "円/月",
+  initial_detail: "初期費用明細", move_in_cost: "入居時一括費用",
+  deposit: "敷金", key_money: "礼金", guarantor_init: "保証会社初回",
+  agency_fee: "仲介手数料", first_month: "初月家賃+管理費",
+  fire_insurance: "火災保険（概算）", initial_total: "初期費用合計",
+  monthly_extra: "月額追加費用", monthly_total_label: "月額合計（賃料+管理+定期+追加）",
+  monthly_spend: "毎月支出", need_confirm: "要確認", unknown: "不明",
+  sec_basic: "基本情報", sec_cost: "費用", sec_initial: "初期費用",
+  sec_commute: "通勤", sec_building: "建物・設備", sec_surround: "周辺環境", sec_remarks: "備考",
+  d_address: "所在地", d_station: "交通", d_layout: "間取り", d_layout_detail: "間取り詳細",
+  d_area: "面積", d_floor: "階数", d_orientation: "向き", d_built: "築年",
+  d_age: "築年数", d_status: "現況", d_movein: "入居時期", d_position: "位置",
+  d_foreigner: "外国人", d_conditions: "入居条件",
+  d_rent: "賃料", d_mgmt: "管理費", d_teiki: "定期代", d_monthly: "月額合計", d_remaining: "残額",
+  d_extra: "月額追加", d_commute_time: "通勤時間", d_commute_mode: "通勤手段", d_commute_route: "ルート",
+  d_structure: "建物構造", d_parking: "駐車場", d_units: "総戸数",
+  d_contract: "契約期間", d_guarantor: "保証会社", d_insurance: "住宅保険",
+  d_management: "管理", d_transaction: "取引態様",
+  d_facilities: "設備", d_kitchen: "キッチン", d_bath: "バス・トイレ",
+  d_shopping: "買い物", d_medical: "医療", d_school: "学校",
+  d_public: "公共機関", d_finance: "金融", d_other_fac: "その他",
+  confirm_clear: "全データを削除しますか？",
+  confirm_delete: "この物件を削除しますか？",
+  confirm_delete_n: "{n}件を削除しますか？",
+  commute_searching: "Google Maps で通勤時間を検索中...（Chrome が自動起動します）",
+  teiki_searching: "NAVITIME で定期代を検索中...",
+  searching: "検索中...",
+  empty_hint: "上のエリアに HOMES 物件URLを貼って分析を開始",
+  empty_sites_hint: "まず以下のサイトで物件を探し、URLをコピーして貼り付けてください",
+  ob_welcome: "ようこそ", ob_welcome_sub: "賃貸検索の設定をしましょう",
+  ob_lang_title: "言語を選択してください",
+  ob_loc_title: "勤務地", ob_city: "都市", ob_city_hint: "タイトル・検索に使用",
+  ob_station: "勤務先最寄駅", ob_station_hint: "定期代計算に使用",
+  ob_addr: "勤務先の住所", ob_addr_hint: "Google Maps通勤時間に使用",
+  ob_budget_title: "予算", ob_salary: "手取り（円/月）", ob_expenses: "固定支出（円/月）",
+  ob_exp_hint: "家賃を除く", ob_budget_label: "住居予算（自動計算）",
+  ob_commute: "現在の通勤時間（分）", ob_commute_mode: "通勤手段",
+  ob_pref_title: "希望条件", ob_floor: "最低階数", ob_area: "最小面積（㎡）",
+  ob_room: "最小帖数", ob_walk: "最大徒歩（分）",
+  ob_corner_lbl: "角部屋", ob_corner_y: "必須", ob_corner_n: "希望（必須ではない）",
+  ob_pref_note: "スコア配点は後から設定画面で細かく調整できます。",
+  ob_skip: "スキップ", ob_back: "戻る", ob_next: "次へ", ob_start: "開始",
+},
+en: {
+  title_suffix: "Rental Analyzer",
+  subtitle: "Paste HOMES.co.jp listing URLs for automatic analysis & ranking",
+  take_home: "Take-home", fixed_exp: "Fixed Exp.", housing_limit: "Housing Limit",
+  workplace: "Workplace", current_to: "Current→", min_unit: "min", company: "Office",
+  corner_unit: "Corner", required: "Required", preferred: "Preferred",
+  pref_orient: "Orientation", high_floor: "High Floor",
+  settings: "Settings", hide_settings: "Hide Settings", settings_title: "Settings",
+  cfg_salary: "Take-home pay (JPY/mo)", cfg_expenses: "Fixed expenses (JPY/mo)",
+  cfg_city: "City", cfg_station: "Nearest station to work", cfg_address: "Workplace address",
+  cfg_commute: "Current commute (min)", cfg_walk: "Max walk to station (min)",
+  cfg_commute_mode: "Commute mode",
+  mode_train: "Train", mode_walk: "Walk", mode_bike: "Bicycle", mode_car: "Car",
+  cfg_weights: "Scoring Weights", cfg_save: "Save & Re-analyze", cancel: "Cancel",
+  w_corner: "Corner unit", w_south: "South-facing", w_east: "E/SE/SW", w_north: "North (penalty)",
+  w_floor5: "High floor (5F+)", w_floor3: "Mid floor (3F+)", w_area: "Area 25m2+",
+  w_room: "Room 6.5 tatami+", w_new: "Built <10yr", w_mid: "Built <20yr",
+  w_budget: "Within budget", w_immediate: "Move-in ready", w_internet: "Free internet",
+  url_label: "Listing URLs (one per line, or paste multiple)",
+  url_placeholder: "Supports HOMES + SUUMO:\nhttps://www.homes.co.jp/chintai/b-...\nhttps://suumo.jp/chintai/...",
+  btn_analyze: "Analyze", btn_load: "Load JSON", btn_clear: "Clear",
+  preparing: "Preparing...",
+  results: "Results", count_fmt: "{ok} of {total} within budget",
+  sort_score: "Score", sort_monthly: "Monthly", sort_rent: "Rent",
+  sort_area: "Area", sort_age: "Age", sort_commute: "Commute",
+  btn_commute: "Check Commute", btn_teiki: "Check Pass",
+  btn_select: "Batch Select", btn_deselect: "Cancel Select",
+  selected: "Selected", select_all: "Select All", deselect_all: "Deselect All",
+  delete_selected: "Delete Selected", exit_select: "Exit Selection",
+  rent_mgmt: "Rent+Mgmt", teiki: "Pass", nearest: "Station",
+  commute_time: "Commute", area: "Area", layout: "Layout",
+  deposit_key: "Dep/Key", initial_cost: "Initial Cost",
+  remaining_label: "Remaining", not_queried: "Not checked", commute_searching: "Searching...", commute_failed: "No route found", door_to_door: "door-to-door",
+  fetch_failed: "Fetch failed", data_fail: "Failed to fetch data",
+  non_corner: "Non-corner", south: "South", north: "North", west: "West",
+  net_free: "Free Net", move_now: "Move-in OK", commute_x_min: "Commute {x}min",
+  teiki_unknown: "Pass unknown", zero_deposit: "No dep/key",
+  foreigner_ok: "Foreigner OK", foreigner_ng: "Foreigner NG",
+  per_month: "/mo",
+  initial_detail: "Initial Cost Breakdown", move_in_cost: "Move-in Costs",
+  deposit: "Deposit", key_money: "Key money", guarantor_init: "Guarantor (initial)",
+  agency_fee: "Agency fee", first_month: "First month rent+mgmt",
+  fire_insurance: "Fire insurance (est.)", initial_total: "Total Initial Cost",
+  monthly_extra: "Monthly Extras", monthly_total_label: "Monthly Total (rent+mgmt+pass+extras)",
+  monthly_spend: "Monthly Spend", need_confirm: "TBD", unknown: "Unknown",
+  sec_basic: "Basic Info", sec_cost: "Cost", sec_initial: "Initial Cost",
+  sec_commute: "Commute", sec_building: "Building & Facilities", sec_surround: "Surroundings", sec_remarks: "Remarks",
+  d_address: "Address", d_station: "Station", d_layout: "Layout", d_layout_detail: "Layout Detail",
+  d_area: "Area", d_floor: "Floor", d_orientation: "Facing", d_built: "Built",
+  d_age: "Age", d_status: "Status", d_movein: "Move-in", d_position: "Position",
+  d_foreigner: "Foreigner", d_conditions: "Conditions",
+  d_rent: "Rent", d_mgmt: "Mgmt Fee", d_teiki: "Pass", d_monthly: "Monthly Total", d_remaining: "Remaining",
+  d_extra: "Monthly Extra", d_commute_time: "Commute Time", d_commute_mode: "Mode", d_commute_route: "Route",
+  d_structure: "Structure", d_parking: "Parking", d_units: "Total Units",
+  d_contract: "Contract", d_guarantor: "Guarantor", d_insurance: "Insurance",
+  d_management: "Management", d_transaction: "Transaction",
+  d_facilities: "Facilities", d_kitchen: "Kitchen", d_bath: "Bath/WC",
+  d_shopping: "Shopping", d_medical: "Medical", d_school: "School",
+  d_public: "Public", d_finance: "Finance", d_other_fac: "Other",
+  confirm_clear: "Delete all records?",
+  confirm_delete: "Delete this listing?",
+  confirm_delete_n: "Delete {n} listings?",
+  commute_searching: "Searching commute times via Google Maps... (Chrome will open)",
+  teiki_searching: "Searching commuter pass prices via NAVITIME...",
+  searching: "Searching...",
+  empty_hint: "Paste HOMES listing URLs above to get started",
+  empty_sites_hint: "Search for listings on these sites, then copy the URLs back here",
+  ob_welcome: "Welcome", ob_welcome_sub: "Let's set up your rental search",
+  ob_lang_title: "Choose your language",
+  ob_loc_title: "Location", ob_city: "City", ob_city_hint: "For page title & search",
+  ob_station: "Nearest station to work", ob_station_hint: "For commuter pass calculation",
+  ob_addr: "Full workplace address", ob_addr_hint: "For Google Maps commute",
+  ob_budget_title: "Budget", ob_salary: "Monthly take-home (JPY)", ob_expenses: "Fixed expenses (JPY)",
+  ob_exp_hint: "Excluding rent", ob_budget_label: "Housing budget (auto)",
+  ob_commute: "Current commute (min)", ob_commute_mode: "Commute mode",
+  ob_pref_title: "Preferences", ob_floor: "Minimum floor", ob_area: "Min area (m2)",
+  ob_room: "Min room (tatami)", ob_walk: "Max walk (min)",
+  ob_corner_lbl: "Corner unit?", ob_corner_y: "Yes, required", ob_corner_n: "Preferred, not required",
+  ob_pref_note: "Scoring weights can be fine-tuned later in Settings.",
+  ob_skip: "Skip", ob_back: "Back", ob_next: "Next", ob_start: "Start",
+}
+};
+
+let curLang = 'zh';
+function t(key) { return (LANGS[curLang] || LANGS.zh)[key] || (LANGS.zh)[key] || key; }
+
+// ══════════════════════════════════════
+// City Data & Searchable Combo
+// ══════════════════════════════════════
+const CITIES = [
+  // 北海道・東北
+  { ja:"札幌", en:"Sapporo", zh:"札幌", region:"北海道" },
+  { ja:"旭川", en:"Asahikawa", zh:"旭川", region:"北海道" },
+  { ja:"函館", en:"Hakodate", zh:"函館", region:"北海道" },
+  { ja:"仙台", en:"Sendai", zh:"仙台", region:"宮城" },
+  { ja:"盛岡", en:"Morioka", zh:"盛岡", region:"岩手" },
+  { ja:"秋田", en:"Akita", zh:"秋田", region:"秋田" },
+  { ja:"山形", en:"Yamagata", zh:"山形", region:"山形" },
+  { ja:"福島", en:"Fukushima", zh:"福島", region:"福島" },
+  { ja:"青森", en:"Aomori", zh:"青森", region:"青森" },
+  // 関東
+  { ja:"東京", en:"Tokyo", zh:"東京", region:"東京" },
+  { ja:"横浜", en:"Yokohama", zh:"橫濱", region:"神奈川" },
+  { ja:"川崎", en:"Kawasaki", zh:"川崎", region:"神奈川" },
+  { ja:"相模原", en:"Sagamihara", zh:"相模原", region:"神奈川" },
+  { ja:"さいたま", en:"Saitama", zh:"埼玉", region:"埼玉" },
+  { ja:"千葉", en:"Chiba", zh:"千葉", region:"千葉" },
+  { ja:"船橋", en:"Funabashi", zh:"船橋", region:"千葉" },
+  { ja:"宇都宮", en:"Utsunomiya", zh:"宇都宮", region:"栃木" },
+  { ja:"前橋", en:"Maebashi", zh:"前橋", region:"群馬" },
+  { ja:"水戸", en:"Mito", zh:"水戶", region:"茨城" },
+  { ja:"つくば", en:"Tsukuba", zh:"筑波", region:"茨城" },
+  // 中部
+  { ja:"名古屋", en:"Nagoya", zh:"名古屋", region:"愛知" },
+  { ja:"静岡", en:"Shizuoka", zh:"靜岡", region:"静岡" },
+  { ja:"浜松", en:"Hamamatsu", zh:"濱松", region:"静岡" },
+  { ja:"新潟", en:"Niigata", zh:"新潟", region:"新潟" },
+  { ja:"金沢", en:"Kanazawa", zh:"金澤", region:"石川" },
+  { ja:"富山", en:"Toyama", zh:"富山", region:"富山" },
+  { ja:"長野", en:"Nagano", zh:"長野", region:"長野" },
+  { ja:"岐阜", en:"Gifu", zh:"岐阜", region:"岐阜" },
+  { ja:"福井", en:"Fukui", zh:"福井", region:"福井" },
+  { ja:"甲府", en:"Kofu", zh:"甲府", region:"山梨" },
+  // 関西
+  { ja:"大阪", en:"Osaka", zh:"大阪", region:"大阪" },
+  { ja:"京都", en:"Kyoto", zh:"京都", region:"京都" },
+  { ja:"神戸", en:"Kobe", zh:"神戶", region:"兵庫" },
+  { ja:"姫路", en:"Himeji", zh:"姬路", region:"兵庫" },
+  { ja:"奈良", en:"Nara", zh:"奈良", region:"奈良" },
+  { ja:"和歌山", en:"Wakayama", zh:"和歌山", region:"和歌山" },
+  { ja:"大津", en:"Otsu", zh:"大津", region:"滋賀" },
+  { ja:"堺", en:"Sakai", zh:"堺", region:"大阪" },
+  // 中国・四国
+  { ja:"広島", en:"Hiroshima", zh:"廣島", region:"広島" },
+  { ja:"岡山", en:"Okayama", zh:"岡山", region:"岡山" },
+  { ja:"松山", en:"Matsuyama", zh:"松山", region:"愛媛" },
+  { ja:"高松", en:"Takamatsu", zh:"高松", region:"香川" },
+  { ja:"高知", en:"Kochi", zh:"高知", region:"高知" },
+  { ja:"徳島", en:"Tokushima", zh:"德島", region:"徳島" },
+  { ja:"鳥取", en:"Tottori", zh:"鳥取", region:"鳥取" },
+  { ja:"松江", en:"Matsue", zh:"松江", region:"島根" },
+  { ja:"山口", en:"Yamaguchi", zh:"山口", region:"山口" },
+  // 九州・沖縄
+  { ja:"福岡", en:"Fukuoka", zh:"福岡", region:"福岡" },
+  { ja:"北九州", en:"Kitakyushu", zh:"北九州", region:"福岡" },
+  { ja:"熊本", en:"Kumamoto", zh:"熊本", region:"熊本" },
+  { ja:"鹿児島", en:"Kagoshima", zh:"鹿兒島", region:"鹿児島" },
+  { ja:"長崎", en:"Nagasaki", zh:"長崎", region:"長崎" },
+  { ja:"大分", en:"Oita", zh:"大分", region:"大分" },
+  { ja:"宮崎", en:"Miyazaki", zh:"宮崎", region:"宮崎" },
+  { ja:"佐賀", en:"Saga", zh:"佐賀", region:"佐賀" },
+  { ja:"那覇", en:"Naha", zh:"那霸", region:"沖縄" },
+];
+
+function getCityLabel(c) { return curLang === 'en' ? c.en : (curLang === 'zh' ? c.zh : c.ja); }
+function getCitySub(c) { return curLang === 'en' ? c.ja : c.en; }
+
+function initCombo(inputId, listId) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  let activeIdx = -1;
+
+  function render(query) {
+    const q = (query || '').toLowerCase();
+    const matches = q ? CITIES.filter(c =>
+      c.ja.includes(q) || c.en.toLowerCase().includes(q) || c.zh.includes(q) || c.region.includes(q)
+    ) : CITIES;
+    activeIdx = -1;
+    list.innerHTML = matches.map((c, i) =>
+      `<div class="combo-item" data-idx="${i}" data-ja="${c.ja}">
+        <span>${getCityLabel(c)} <span class="combo-sub">${getCitySub(c)}</span></span>
+        <span class="combo-region">${c.region}</span>
+      </div>`
+    ).join('');
+    list.classList.toggle('open', matches.length > 0);
+
+    list.querySelectorAll('.combo-item').forEach(item => {
+      item.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        input.value = item.dataset.ja;
+        list.classList.remove('open');
+        input.dispatchEvent(new Event('change'));
+      });
+    });
+  }
+
+  input.addEventListener('focus', () => render(input.value));
+  input.addEventListener('input', () => render(input.value));
+  input.addEventListener('blur', () => setTimeout(() => list.classList.remove('open'), 150));
+  input.addEventListener('keydown', (e) => {
+    const items = list.querySelectorAll('.combo-item');
+    if (!items.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx+1, items.length-1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx-1, 0); }
+    else if (e.key === 'Enter' && activeIdx >= 0) { e.preventDefault(); items[activeIdx].dispatchEvent(new Event('mousedown')); return; }
+    else return;
+    items.forEach((it,i) => it.classList.toggle('active', i === activeIdx));
+    if (activeIdx >= 0) items[activeIdx].scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function setLang(lang) {
+  curLang = lang;
+  appConfig.lang = lang;
+  applyI18n();
+  renderBudgetBar();
+  renderCriteria();
+  if (currentResults.length) renderResults();
+  // persist
+  fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(appConfig) });
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.getElementById('headerTitle').textContent = (appConfig.city_label || '') + t('title_suffix');
+  document.getElementById('headerSub').textContent = t('subtitle');
+  document.getElementById('pageTitle').textContent = (appConfig.city_label || '') + t('title_suffix');
+  document.getElementById('urlInput').placeholder = t('url_placeholder');
+  document.getElementById('progressText').textContent = t('preparing');
+  // settings button
+  const panel = document.getElementById('settingsPanel');
+  document.getElementById('btnSettings').textContent = panel.style.display !== 'none' ? t('hide_settings') : t('settings');
+  document.getElementById('settingsTitle').textContent = t('settings_title');
+  // Commute mode dropdowns
+  // Commute mode dropdowns
+  const modeOpts = document.getElementById('cfgCommuteMode').options;
+  modeOpts[0].textContent = t('mode_train'); modeOpts[1].textContent = t('mode_walk');
+  modeOpts[2].textContent = t('mode_bike'); modeOpts[3].textContent = t('mode_car');
+  // Hide teiki button if not train
+  const isTrain = (appConfig.commute_mode || 'train') === 'train';
+  document.getElementById('btnTeiki').style.display = isTrain ? '' : 'none';
+  // lang switcher
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === ({zh:'中文',ja:'日本語',en:'EN'}[curLang]));
+  });
+}
+
+// ══════════════════════════════════════
+// State
+// ══════════════════════════════════════
+let currentResults = [];
+let currentSort = 'score';
+let pollTimer = null;
+let selectMode = false;
+let selectedUrls = new Set();
+let appConfig = {};
+
+// ══════════════════════════════════════
+// Onboarding
+// ══════════════════════════════════════
+let obStep = 0;
+const OB_TOTAL = 4;
+
+function needsOnboarding() {
+  return !appConfig.city_label && !appConfig.office_label && !appConfig.office_address;
+}
+function showOnboarding() {
+  obStep = 0; renderOb();
+  document.getElementById('onboardingOverlay').classList.add('active');
+}
+function obSetLang(lang) {
+  curLang = lang;
+  document.querySelectorAll('.ob-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  applyI18n(); renderOb();
+}
+function renderOb() {
+  const icons = ['&#x1F30D;','&#x1F4CD;','&#x1F4B0;','&#x2B50;'];
+  const titles = [t('ob_lang_title'), t('ob_loc_title'), t('ob_budget_title'), t('ob_pref_title')];
+  const subs = [t('ob_welcome_sub'), t('ob_city_hint'), t('ob_exp_hint'), t('ob_pref_note')];
+  document.getElementById('obIcon').innerHTML = icons[obStep];
+  document.getElementById('obTitle').textContent = obStep === 0 ? t('ob_welcome') : titles[obStep];
+  document.getElementById('obSubtitle').textContent = subs[obStep];
+  document.getElementById('obProgressFill').style.width = ((obStep + 1) / OB_TOTAL * 100) + '%';
+  for (let i = 0; i < OB_TOTAL; i++) document.getElementById('obStep'+i).classList.toggle('active', i === obStep);
+  document.getElementById('obBackBtn').style.display = obStep > 0 ? 'inline-block' : 'none';
+  document.getElementById('obBackBtn').textContent = t('ob_back');
+  document.getElementById('obNextBtn').textContent = obStep === OB_TOTAL-1 ? t('ob_start') : t('ob_next');
+  document.getElementById('obSkipBtn').textContent = t('ob_skip');
+  // Labels
+  document.getElementById('obLangTitle').textContent = t('ob_lang_title');
+  document.getElementById('obLocTitle').textContent = t('ob_loc_title');
+  document.getElementById('obCityLbl').textContent = t('ob_city');
+  document.getElementById('obCityHint').textContent = t('ob_city_hint');
+  document.getElementById('obStationLbl').textContent = t('ob_station');
+  document.getElementById('obStationHint').textContent = t('ob_station_hint');
+  document.getElementById('obAddrLbl').textContent = t('ob_addr');
+  document.getElementById('obAddrHint').textContent = t('ob_addr_hint');
+  document.getElementById('obBudgetTitle').textContent = t('ob_budget_title');
+  document.getElementById('obSalaryLbl').textContent = t('ob_salary');
+  document.getElementById('obExpLbl').textContent = t('ob_expenses');
+  document.getElementById('obExpHint').textContent = t('ob_exp_hint');
+  document.getElementById('obBudgetLabel').textContent = t('ob_budget_label');
+  document.getElementById('obCommuteModeLbl').textContent = t('ob_commute_mode');
+  document.getElementById('obModeTrain').textContent = t('mode_train');
+  document.getElementById('obModeWalk').textContent = t('mode_walk');
+  document.getElementById('obModeBike').textContent = t('mode_bike');
+  document.getElementById('obModeCar').textContent = t('mode_car');
+  document.getElementById('obCommuteLbl').textContent = t('ob_commute');
+  document.getElementById('obPrefTitle').textContent = t('ob_pref_title');
+  document.getElementById('obFloorLbl').textContent = t('ob_floor');
+  document.getElementById('obAreaLbl').textContent = t('ob_area');
+  document.getElementById('obRoomLbl').textContent = t('ob_room');
+  document.getElementById('obWalkLbl').textContent = t('ob_walk');
+  document.getElementById('obCornerLbl').textContent = t('ob_corner_lbl');
+  document.getElementById('obCornerY').textContent = t('ob_corner_y');
+  document.getElementById('obCornerN').textContent = t('ob_corner_n');
+  document.getElementById('obPrefNote').textContent = t('ob_pref_note');
+}
+function obNext() { if (obStep < OB_TOTAL-1) { obStep++; renderOb(); } else finishOnboarding(); }
+function obBack() { if (obStep > 0) { obStep--; renderOb(); } }
+function skipOnboarding() { document.getElementById('onboardingOverlay').classList.remove('active'); }
+async function finishOnboarding() {
+  const salary = parseInt(document.getElementById('obSalary').value) || 250000;
+  const expenses = parseInt(document.getElementById('obExpenses').value) || 150000;
+  appConfig = { ...appConfig,
+    lang: curLang,
+    city_label: document.getElementById('obCity').value || '',
+    office_label: document.getElementById('obStation').value || '',
+    office_address: document.getElementById('obAddress').value || '',
+    salary, fixed_expenses: expenses, budget: salary - expenses,
+    commute_mode: document.getElementById('obCommuteMode').value,
+    current_commute: parseInt(document.getElementById('obCurrentCommute').value) || 0,
+    max_walk_min: parseInt(document.getElementById('obMaxWalk').value) || 15,
+    preferences: { ...(appConfig.preferences||{}),
+      min_floor: parseInt(document.getElementById('obMinFloor').value) || 5,
+      min_area: parseInt(document.getElementById('obMinArea').value) || 25,
+      min_room_size: parseFloat(document.getElementById('obMinRoom').value) || 6.5,
+      corner_required: document.getElementById('obCorner').value === 'true',
+    },
+  };
+  await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(appConfig) });
+  document.getElementById('onboardingOverlay').classList.remove('active');
+  location.reload();
+}
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'obSalary' || e.target.id === 'obExpenses') {
+    const s = parseInt(document.getElementById('obSalary').value)||0;
+    const ex = parseInt(document.getElementById('obExpenses').value)||0;
+    const b = s - ex, preview = document.getElementById('obBudgetPreview');
+    if (s > 0) { preview.textContent = b.toLocaleString()+' JPY'; preview.style.color = b > 0 ? 'var(--accent)' : 'var(--red)'; }
+    else { preview.innerHTML = '&#8212;'; preview.style.color = 'var(--accent)'; }
+  }
+});
+
+// ══════════════════════════════════════
+// Init
+// ══════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadConfig();
+  curLang = appConfig.lang || 'zh';
+  applyI18n();
+  initCombo('obCity', 'obCityList');
+  initCombo('cfgCityLabel', 'cfgCityList');
+  if (needsOnboarding()) showOnboarding();
+  await loadSavedData();
+});
+
+async function loadSavedData() {
+  try { const r = await fetch('/api/data'); const d = await r.json(); if (d&&d.length) { currentResults=d; renderResults(); } } catch(e) {}
+}
+
+async function loadConfig() {
+  const resp = await fetch('/api/config');
+  appConfig = await resp.json();
+  renderBudgetBar(); renderCriteria();
+}
+
+// ══════════════════════════════════════
+// Budget Bar & Criteria
+// ══════════════════════════════════════
+function renderBudgetBar() {
+  const c = appConfig, budget = c.salary - c.fixed_expenses;
+  document.getElementById('budgetBar').innerHTML = `
+    <div class="budget-item"><div class="label">${t('take_home')}</div><div class="value">${(c.salary||0).toLocaleString()}</div></div>
+    <div class="budget-item"><div class="label">${t('fixed_exp')}</div><div class="value">${(c.fixed_expenses||0).toLocaleString()}</div></div>
+    <div class="budget-item"><div class="label">${t('housing_limit')}</div><div class="value">${(c.budget||budget).toLocaleString()}</div></div>
+    <div class="budget-item"><div class="label">${t('workplace')}</div><div class="value" style="font-size:16px">${c.office_label||'—'}</div></div>
+    <div class="budget-item" style="border-left:1px solid var(--border);padding-left:16px"><div class="label">${t('current_to')}${c.office_label||t('company')}</div><div class="value" style="color:var(--orange)">${c.current_commute||'?'}<span style="font-size:12px;color:var(--muted)">${t('min_unit')}</span></div></div>`;
+}
+
+function renderCriteria() {
+  const p = appConfig.preferences || {}, ori = (p.preferred_orientation||[]).join('/');
+  document.getElementById('criteriaSummary').innerHTML = `
+    <div class="criteria-item"><span>1</span><span class="ci-label">${t('corner_unit')}</span> ${p.corner_required ? t('required') : t('preferred')}</div>
+    <div class="criteria-item"><span>2</span><span class="ci-label">${ori||t('south')}</span> ${t('pref_orient')}</div>
+    <div class="criteria-item"><span>3</span><span class="ci-label">${p.min_floor||5}F+</span> ${t('high_floor')}</div>
+    <div class="criteria-item"><span>4</span><span class="ci-label">${p.min_area||25}m2+</span> ${(p.min_room_size||6.5)}帖+</div>`;
+}
+
+// ══════════════════════════════════════
+// Settings
+// ══════════════════════════════════════
+function toggleSettings() {
+  const panel = document.getElementById('settingsPanel'), showing = panel.style.display !== 'none';
+  if (!showing) {
+    const c = appConfig, sc = c.scoring||{};
+    document.getElementById('cfgSalary').value = c.salary||'';
+    document.getElementById('cfgExpenses').value = c.fixed_expenses||'';
+    document.getElementById('cfgCityLabel').value = c.city_label||'';
+    document.getElementById('cfgOfficeLabel').value = c.office_label||'';
+    document.getElementById('cfgOfficeAddr').value = c.office_address||'';
+    document.getElementById('cfgCurrentCommute').value = c.current_commute||'';
+    document.getElementById('cfgMaxWalk').value = c.max_walk_min||15;
+    document.getElementById('cfgCommuteMode').value = c.commute_mode||'train';
+    document.getElementById('scCorner').value = sc.corner??30;
+    document.getElementById('scSouth').value = sc.south??20;
+    document.getElementById('scEast').value = sc.east_variants??10;
+    document.getElementById('scNorth').value = sc.north_penalty??-10;
+    document.getElementById('scFloor5').value = sc.high_floor_5f??15;
+    document.getElementById('scFloor3').value = sc.mid_floor_3f??5;
+    document.getElementById('scArea').value = sc.area_25??5;
+    document.getElementById('scRoom').value = sc.room_6_5??10;
+    document.getElementById('scNew').value = sc.new_10yr??10;
+    document.getElementById('scMid').value = sc.mid_20yr??5;
+    document.getElementById('scBudget').value = sc.within_budget??10;
+    document.getElementById('scImmediate').value = sc.immediate??5;
+    document.getElementById('scInternet').value = sc.free_internet??5;
+  }
+  panel.style.display = showing ? 'none' : 'block';
+  document.getElementById('btnSettings').textContent = showing ? t('settings') : t('hide_settings');
+}
+
+async function saveSettings() {
+  const salary = parseInt(document.getElementById('cfgSalary').value)||0;
+  const expenses = parseInt(document.getElementById('cfgExpenses').value)||0;
+  appConfig = { ...appConfig, salary, fixed_expenses: expenses, budget: salary - expenses,
+    city_label: document.getElementById('cfgCityLabel').value,
+    office_label: document.getElementById('cfgOfficeLabel').value,
+    office_address: document.getElementById('cfgOfficeAddr').value,
+    current_commute: parseInt(document.getElementById('cfgCurrentCommute').value)||0,
+    max_walk_min: parseInt(document.getElementById('cfgMaxWalk').value)||15,
+    commute_mode: document.getElementById('cfgCommuteMode').value,
+    scoring: {
+      corner: parseInt(document.getElementById('scCorner').value)||0, south: parseInt(document.getElementById('scSouth').value)||0,
+      east_variants: parseInt(document.getElementById('scEast').value)||0, north_penalty: parseInt(document.getElementById('scNorth').value)||0,
+      high_floor_5f: parseInt(document.getElementById('scFloor5').value)||0, mid_floor_3f: parseInt(document.getElementById('scFloor3').value)||0,
+      area_25: parseInt(document.getElementById('scArea').value)||0, room_6_5: parseInt(document.getElementById('scRoom').value)||0,
+      room_small_penalty: -5, new_10yr: parseInt(document.getElementById('scNew').value)||0,
+      mid_20yr: parseInt(document.getElementById('scMid').value)||0, within_budget: parseInt(document.getElementById('scBudget').value)||0,
+      over_budget_penalty: -20, immediate: parseInt(document.getElementById('scImmediate').value)||0,
+      free_internet: parseInt(document.getElementById('scInternet').value)||0,
+    }, preferences: appConfig.preferences || {} };
+  const resp = await fetch('/api/config', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(appConfig) });
+  const result = await resp.json();
+  renderBudgetBar(); renderCriteria(); toggleSettings(); applyI18n();
+  const r2 = await fetch('/api/data'); currentResults = await r2.json(); renderResults();
+  alert(result.message);
+}
+
+// ══════════════════════════════════════
+// Scraping
+// ══════════════════════════════════════
+async function startScrape() {
+  const urls = document.getElementById('urlInput').value; if (!urls.trim()) return;
+  document.getElementById('btnScrape').disabled = true;
+  document.getElementById('progressBar').classList.add('active');
+  document.getElementById('emptyState').style.display = 'none';
+  const resp = await fetch('/api/scrape', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls}) });
+  if (!resp.ok) { const err = await resp.json(); alert(err.error); document.getElementById('btnScrape').disabled = false; return; }
+  pollProgress();
+}
+
+function pollProgress() {
+  let idleCount = 0;
+  pollTimer = setInterval(async () => {
+    const resp = await fetch('/api/progress'), data = await resp.json();
+    document.getElementById('progressText').textContent = data.message || t('preparing');
+    if (data.total > 0) document.getElementById('progressFill').style.width = (data.current/data.total*100)+'%';
+    if (data.status === 'idle') { idleCount++; if (idleCount>=3) { clearInterval(pollTimer); document.getElementById('btnScrape').disabled=false; document.getElementById('progressBar').classList.remove('active'); } return; }
+    idleCount = 0;
+    if (data.status==='done'||data.status==='error') {
+      clearInterval(pollTimer); document.getElementById('btnScrape').disabled=false;
+      if (data.status==='done'&&data.results) { currentResults=data.results; renderResults(); }
+      setTimeout(()=>document.getElementById('progressBar').classList.remove('active'),2000);
+    }
+  }, 1000);
+}
+
+async function loadExisting() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.json';
+  input.onchange = async (e) => {
+    const text = await e.target.files[0].text(), properties = JSON.parse(text);
+    const resp = await fetch('/api/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({properties}) });
+    currentResults = await resp.json(); renderResults();
+  }; input.click();
+}
+
+async function clearAll() {
+  if (!confirm(t('confirm_clear'))) return;
+  await fetch('/api/clear',{method:'POST'}); currentResults=[];
+  document.getElementById('urlInput').value='';
+  document.getElementById('resultsSection').style.display='none';
+  document.getElementById('emptyState').style.display='block';
+}
+
+async function deleteProperty(url) {
+  if (!confirm(t('confirm_delete'))) return;
+  await fetch('/api/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url}) });
+  currentResults = currentResults.filter(r => r.url !== url); renderResults();
+  if (!currentResults.length) { document.getElementById('resultsSection').style.display='none'; document.getElementById('emptyState').style.display='block'; }
+}
+
+// ══════════════════════════════════════
+// Batch Select
+// ══════════════════════════════════════
+function toggleSelectMode() {
+  selectMode = !selectMode; selectedUrls.clear();
+  document.getElementById('btnSelectMode').textContent = selectMode ? t('btn_deselect') : t('btn_select');
+  document.getElementById('batchBar').classList.toggle('active', selectMode);
+  document.getElementById('cardsContainer').classList.toggle('select-mode', selectMode);
+  updateSelectedCount(); renderResults();
+}
+function toggleSelect(url) {
+  if (!selectMode) return;
+  if (selectedUrls.has(url)) selectedUrls.delete(url); else selectedUrls.add(url);
+  document.querySelectorAll('.card-wrapper').forEach(w => {
+    const cb=w.querySelector('.card-checkbox'), card=w.querySelector('.card');
+    if (cb&&cb.dataset.url===url) { cb.checked=selectedUrls.has(url); card.classList.toggle('selected',selectedUrls.has(url)); }
+  }); updateSelectedCount();
+}
+function onCheckboxChange(url, checked) {
+  if (checked) selectedUrls.add(url); else selectedUrls.delete(url);
+  document.querySelectorAll('.card-wrapper').forEach(w => {
+    const cb=w.querySelector('.card-checkbox'), card=w.querySelector('.card');
+    if (cb&&cb.dataset.url===url) card.classList.toggle('selected',checked);
+  }); updateSelectedCount();
+}
+function selectAll() { currentResults.forEach(r=>{if(r.url)selectedUrls.add(r.url)}); document.querySelectorAll('.card-checkbox').forEach(c=>{c.checked=true}); document.querySelectorAll('.card').forEach(c=>c.classList.add('selected')); updateSelectedCount(); }
+function selectNone() { selectedUrls.clear(); document.querySelectorAll('.card-checkbox').forEach(c=>{c.checked=false}); document.querySelectorAll('.card').forEach(c=>c.classList.remove('selected')); updateSelectedCount(); }
+function updateSelectedCount() { document.getElementById('selectedCount').textContent = selectedUrls.size; }
+
+async function deleteSelected() {
+  if (!selectedUrls.size) return;
+  if (!confirm(t('confirm_delete_n').replace('{n}', selectedUrls.size))) return;
+  await fetch('/api/delete-batch', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({urls:Array.from(selectedUrls)}) });
+  currentResults = currentResults.filter(r=>!selectedUrls.has(r.url)); selectedUrls.clear(); updateSelectedCount(); renderResults();
+  if (!currentResults.length) { toggleSelectMode(); document.getElementById('resultsSection').style.display='none'; document.getElementById('emptyState').style.display='block'; }
+}
+
+// ══════════════════════════════════════
+// Commute & Teiki
+// ══════════════════════════════════════
+function getOfficeAddr() { return appConfig.office_address || ''; }
+
+async function startCommute() {
+  document.getElementById('btnCommute').disabled=true; document.getElementById('btnCommute').textContent=t('searching');
+  document.getElementById('progressBar').classList.add('active');
+  document.getElementById('progressText').textContent=t('commute_searching'); document.getElementById('progressFill').style.width='0%';
+  // Mark unchecked properties as searching
+  currentResults.forEach(r => { if (r.commute_min == null) r._commute_searching = true; });
+  renderResults();
+  try {
+    const resp = await fetch('/api/commute', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({}) });
+    if (!resp.ok) { const err=await resp.json(); alert(err.error||err.message); currentResults.forEach(r => delete r._commute_searching); renderResults(); document.getElementById('btnCommute').disabled=false; document.getElementById('btnCommute').textContent=t('btn_commute'); document.getElementById('progressBar').classList.remove('active'); return; }
+    pollCommute();
+  } catch(e) { alert(e.message); currentResults.forEach(r => delete r._commute_searching); renderResults(); document.getElementById('btnCommute').disabled=false; document.getElementById('btnCommute').textContent=t('btn_commute'); document.getElementById('progressBar').classList.remove('active'); }
+}
+
+function pollCommute() {
+  let idleCount=0; const timer = setInterval(async()=>{
+    const resp=await fetch('/api/commute/progress'), data=await resp.json();
+    document.getElementById('progressText').textContent=data.message;
+    if (data.total>0) document.getElementById('progressFill').style.width=(data.current/data.total*100)+'%';
+    if (data.status==='idle') { idleCount++; if(idleCount>=3){clearInterval(timer);document.getElementById('btnCommute').disabled=false;document.getElementById('btnCommute').textContent=t('btn_commute');document.getElementById('progressBar').classList.remove('active');} return; }
+    idleCount=0;
+    if (data.status==='done'||data.status==='error') { clearInterval(timer); document.getElementById('btnCommute').disabled=false; document.getElementById('btnCommute').textContent=t('btn_commute');
+      const r2=await fetch('/api/data'); currentResults=await r2.json();
+      currentResults.forEach(r => delete r._commute_searching);
+      renderResults();
+      setTimeout(()=>document.getElementById('progressBar').classList.remove('active'),2000); }
+  }, 1500);
+}
+
+async function startTeiki() {
+  document.getElementById('btnTeiki').disabled=true; document.getElementById('btnTeiki').textContent=t('searching');
+  document.getElementById('progressBar').classList.add('active');
+  document.getElementById('progressText').textContent=t('teiki_searching'); document.getElementById('progressFill').style.width='0%';
+  await fetch('/api/teiki',{method:'POST'}); pollTeiki();
+}
+
+function pollTeiki() {
+  let idleCount=0; const timer = setInterval(async()=>{
+    const resp=await fetch('/api/teiki/progress'), data=await resp.json();
+    document.getElementById('progressText').textContent=data.message;
+    if (data.total>0) document.getElementById('progressFill').style.width=(data.current/data.total*100)+'%';
+    if (data.status==='idle') { idleCount++; if(idleCount>=3){clearInterval(timer);document.getElementById('btnTeiki').disabled=false;document.getElementById('btnTeiki').textContent=t('btn_teiki');document.getElementById('progressBar').classList.remove('active');} return; }
+    idleCount=0;
+    if (data.status==='done'||data.status==='error') { clearInterval(timer); document.getElementById('btnTeiki').disabled=false; document.getElementById('btnTeiki').textContent=t('btn_teiki');
+      const r2=await fetch('/api/data'); currentResults=await r2.json(); renderResults();
+      setTimeout(()=>document.getElementById('progressBar').classList.remove('active'),2000); }
+  }, 1500);
+}
+
+// ══════════════════════════════════════
+// Sort & Render
+// ══════════════════════════════════════
+function sortBy(key) {
+  currentSort = key;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  if (key==='score') currentResults.sort((a,b)=>(b.score||0)-(a.score||0));
+  else if (key==='monthly_total'||key==='commute_min') currentResults.sort((a,b)=>(a[key]||999)-(b[key]||999));
+  else if (key==='area_num') currentResults.sort((a,b)=>(b[key]||0)-(a[key]||0));
+  else if (key==='age') currentResults.sort((a,b)=>(a[key]||999)-(b[key]||999));
+  else currentResults.sort((a,b)=>(a[key]||999999)-(b[key]||999999));
+  renderResults();
+}
+
+function renderResults() {
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('resultsSection').style.display='block';
+  const ok = currentResults.filter(r=>r.within_budget).length;
+  document.getElementById('resultCount').textContent = t('count_fmt').replace('{total}',currentResults.length).replace('{ok}',ok);
+  document.getElementById('cardsContainer').innerHTML = currentResults.map((r,i)=>renderCard(r,i+1)).join('');
+}
+
+function commuteDisplay(r) {
+  // Searching state
+  if (r._commute_searching) return `<span style="color:var(--accent)" class="commute-pulse">${t('commute_searching')}</span>`;
+  // Failed state
+  if (r.commute_min === -1) return `<span style="color:var(--muted);font-size:11px">${t('commute_failed')}</span>`;
+  // Not yet queried
+  if (r.commute_min==null) return `<span style="color:var(--muted)">${t('not_queried')}</span>`;
+  const min=r.commute_min, cls=min<=20?'color:var(--green)':min<=35?'color:var(--accent)':'color:var(--orange)';
+  const addr=(r.address||'').replace('地図を見る','').trim();
+  const origin=encodeURIComponent(addr||(r.best_station?r.best_station+'駅 '+(appConfig.city_label||''):''));
+  const dest=encodeURIComponent(getOfficeAddr());
+  // Use actual mode used for Maps link
+  const modeUsed = r.commute_mode_used || {train:'transit',car:'car',bike:'bike',walk:'walk'}[appConfig.commute_mode||'train'] || 'transit';
+  const gmModeMap = {transit:'3',car:'0',bike:'1',walk:'2'};
+  const gmMode = gmModeMap[modeUsed] || '3';
+  const mapsUrl=`https://www.google.com/maps/dir/${origin}/${dest}/data=!4m2!4m1!3e${gmMode}`;
+  // Show mode icon if it differs from preferred
+  const prefMode = {train:'transit',car:'car',bike:'bike',walk:'walk'}[appConfig.commute_mode||'train'];
+  const modeIcons = {transit:'\u{1F683}',car:'\u{1F697}',bike:'\u{1F6B2}',walk:'\u{1F6B6}'};
+  const modeLabel = modeUsed !== prefMode && modeIcons[modeUsed] ? `<br><span style="font-size:10px">${modeIcons[modeUsed]} ${modeUsed}</span>` : '';
+  return `<a href="${mapsUrl}" target="_blank" onclick="event.stopPropagation()" style="${cls};font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer">${min}${t('min_unit')}</a><br><span style="font-size:10px;color:var(--muted)">${t('door_to_door')}</span>${modeLabel}`;
+}
+
+function renderCard(r, rank) {
+  if (r.error) return `<div class="card over-budget"><div class="rank">${rank}</div><div class="card-body"><div class="card-title"><a href="${r.url}" target="_blank">${r.label||t('fetch_failed')}</a></div><p style="color:var(--red);font-size:13px">${t('data_fail')}</p></div><div class="card-right"></div></div>`;
+
+  const budgetClass=r.within_budget?'within-budget':'over-budget', totalClass=r.within_budget?'ok':'ng', rankClass=rank<=3?'top3':'';
+  let tags='';
+  if (r.is_corner) tags+=`<span class="tag tag-green">${t('corner_unit')}</span>`; else tags+=`<span class="tag tag-red">${t('non_corner')}</span>`;
+  const ori=r.orientation||'-';
+  if (ori==='南') tags+=`<span class="tag tag-green">${t('south')}</span>`;
+  else if (['東','南東','南西'].includes(ori)) tags+=`<span class="tag tag-blue">${ori}</span>`;
+  else if (ori==='北') tags+=`<span class="tag tag-red">${t('north')}</span>`;
+  else if (ori==='西') tags+=`<span class="tag tag-orange">${t('west')}</span>`;
+  else tags+=`<span class="tag tag-gray">${ori}</span>`;
+  if (r.floor_num>=5) tags+=`<span class="tag tag-green">${r.floor_num}F</span>`; else tags+=`<span class="tag tag-gray">${r.floor_num||'?'}F</span>`;
+  if (r.age<=10) tags+=`<span class="tag tag-green">築${r.age}年</span>`; else if (r.age<=20) tags+=`<span class="tag tag-blue">築${r.age}年</span>`; else tags+=`<span class="tag tag-orange">築${r.age}年</span>`;
+  if (r.facilities&&r.facilities.includes('インターネット使用料無料')) tags+=`<span class="tag tag-blue">${t('net_free')}</span>`;
+  if (r.movein==='即時') tags+=`<span class="tag tag-green">${t('move_now')}</span>`; else if (r.movein) tags+=`<span class="tag tag-orange">${(r.movein||'').substring(0,10)}</span>`;
+  if (r.commute_min!=null) { const cm=r.commute_min; const modeUsed=r.commute_mode_used; const pref=appConfig.commute_mode||'train'; const modeIcon={transit:'&#x1F683;',car:'&#x1F697;',bike:'&#x1F6B2;',walk:'&#x1F6B6;'}; const isFallback=modeUsed&&modeUsed!=={train:'transit',car:'car',bike:'bike',walk:'walk'}[pref]; const mTag=isFallback&&modeIcon[modeUsed]?' '+modeIcon[modeUsed]:''; tags+=`<span class="tag ${cm<=20?'tag-green':cm<=35?'tag-blue':'tag-orange'}">${t('commute_x_min').replace('{x}',cm)}${mTag}</span>`; }
+  if (r.missing_stations&&r.missing_stations.length>0&&r.best_teiki==null) tags+=`<span class="tag tag-red">${t('teiki_unknown')}</span>`;
+  if (r.extra_monthly>0) tags+=`<span class="tag tag-orange">+${r.extra_monthly_text}</span>`;
+  if (r.shikikin===0&&r.reikin===0) tags+=`<span class="tag tag-green">${t('zero_deposit')}</span>`;
+  const fg=r.foreigner||''; if (fg.includes('可')) tags+=`<span class="tag tag-green">${t('foreigner_ok')}</span>`; else if (fg.includes('不可')) tags+=`<span class="tag tag-red">${t('foreigner_ng')}</span>`;
+
+  let scoreCls='score-low'; if(r.score>=60) scoreCls='score-high'; else if(r.score>=40) scoreCls='score-mid';
+  const teikiStr=r.best_teiki!=null?r.best_teiki.toLocaleString()+'円':'—';
+  const stationInfo=r.best_station?r.best_station+'駅 '+r.best_walk+t('min_unit'):'—';
+  const remainStr=r.within_budget?'+'+r.remaining.toLocaleString()+'円':r.remaining.toLocaleString()+'円';
+  const checked=selectedUrls.has(r.url)?'checked':'', selectedCls=selectedUrls.has(r.url)?'selected':'';
+  const eu=(r.url||'').replace(/'/g,"\\'");
+
+  return `<div class="card-wrapper" onclick="if(selectMode){toggleSelect('${eu}')}">
+    <input type="checkbox" class="card-checkbox" data-url="${r.url}" ${checked} onclick="event.stopPropagation(); onCheckboxChange('${eu}', this.checked)">
+    <div class="card ${budgetClass} ${selectedCls}">
+      <div class="rank ${rankClass}">${rank}</div>
+      <div class="card-body">
+        <div class="card-title"><a href="javascript:void(0)" onclick="event.stopPropagation(); showDetail(${rank-1})" style="cursor:pointer">${r.label||'?'}</a></div>
+        <div class="tags">${tags}</div>
+        <div class="card-grid">
+          <div class="card-stat"><div class="stat-label">${t('rent_mgmt')}</div><div class="stat-value">${((r.rent_num||0)+(r.mgmt_num||0)).toLocaleString()}円</div></div>
+          <div class="card-stat"><div class="stat-label">${t('teiki')}</div><div class="stat-value">${teikiStr}</div></div>
+          <div class="card-stat"><div class="stat-label">${t('nearest')}</div><div class="stat-value">${stationInfo}</div></div>
+          <div class="card-stat"><div class="stat-label">${t('commute_time')}</div><div class="stat-value">${commuteDisplay(r)}</div></div>
+          <div class="card-stat"><div class="stat-label">${t('area')}</div><div class="stat-value">${r.area||'—'}</div></div>
+          <div class="card-stat"><div class="stat-label">${t('layout')}</div><div class="stat-value">${(r.room_size||'?')}帖</div></div>
+          <div class="card-stat"><div class="stat-label">${t('deposit_key')}</div><div class="stat-value">${r.deposit||'—'}</div></div>
+          <div class="card-stat"><div class="stat-label">${t('initial_cost')}</div><div class="stat-value" style="cursor:pointer;text-decoration:underline;text-underline-offset:3px" onclick="event.stopPropagation(); showDetail(${rank-1})">${r.initial_cost?r.initial_cost.toLocaleString()+'円':'—'}</div></div>
+        </div>
+      </div>
+      <div class="card-right">
+        <div class="monthly-total ${totalClass}">${(r.monthly_total||0).toLocaleString()}<span style="font-size:12px">${t('per_month')}</span></div>
+        <div class="remaining">${t('remaining_label')} ${remainStr}</div>
+        <div class="score-badge ${scoreCls}">Score ${r.score||0}</div>
+        <button class="btn-delete" onclick="event.stopPropagation(); deleteProperty('${eu}')">&#x2715;</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showDetail(index) {
+  const r = currentResults[index]; if (!r) return;
+  const fmt = (n) => n!=null&&n>=0 ? n.toLocaleString()+'円' : '—';
+  const modeIcons = {transit:'\u{1F683}',car:'\u{1F697}',bike:'\u{1F6B2}',walk:'\u{1F6B6}'};
+  const scoreCls = r.score>=60?'score-high':r.score>=40?'score-mid':'score-low';
+
+  // Helper: render a detail item only if value exists
+  const di = (label, val, full) => val ? `<div class="detail-item${full?' full':''}""><div class="dl">${label}</div><div class="dv">${val}</div></div>` : '';
+  // Helper: render a section only if it has content
+  const sec = (icon, titleKey, content) => content.trim() ? `<div class="detail-section"><div class="detail-section-title">${icon} ${t(titleKey)}</div>${content}</div>` : '';
+  // Helper: facility chips
+  const chips = (text) => text ? '<div class="detail-facilities">' + text.split(/[、，,]/).map(s=>s.trim()).filter(Boolean).map(s=>`<span>${s}</span>`).join('') + '</div>' : '';
+  // Helper: surroundings list
+  const surrList = (items) => items && items.length ? items.map(s=>`<div style="font-size:12px;padding:2px 0">• ${s}</div>`).join('') : '';
+
+  document.getElementById('modalTitle').textContent = r.label || '?';
+
+  let html = `<div class="detail-sub"><a href="${r.url}" target="_blank">${r.url}</a> &nbsp; <span class="score-badge ${scoreCls}" style="vertical-align:middle">Score ${r.score||0}</span></div>`;
+
+  // ── Basic Info ──
+  const stationDisplay = (r.station||'').replace(/\s+(徒歩)/g, '<br>$1');
+  html += sec('\u{1F4CD}', 'sec_basic', `<div class="detail-grid">
+    ${di(t('d_address'), (r.address||'').replace('地図を見る','').trim())}
+    ${di(t('d_floor'), r.floor)}
+    ${di(t('d_layout'), r.layout)}
+    ${di(t('d_layout_detail'), r.layout_detail)}
+    ${di(t('d_area'), r.area)}
+    ${di(t('d_orientation'), r.orientation)}
+    ${di(t('d_built'), r.built)}
+    ${di(t('d_age'), r.age ? r.age+'年' : '')}
+    ${di(t('d_position'), r.position)}
+    ${di(t('d_status'), r.status)}
+    ${di(t('d_movein'), r.movein)}
+    ${di(t('d_foreigner'), r.foreigner)}
+    ${di(t('d_conditions'), r.conditions, true)}
+    ${di(t('d_station'), stationDisplay, true)}
+  </div>`);
+
+  // ── Cost ──
+  html += sec('\u{1F4B0}', 'sec_cost', `<div class="detail-grid">
+    ${di(t('d_rent'), r.rent)}
+    ${di(t('d_mgmt'), r.mgmt)}
+    ${di(t('deposit_key'), r.deposit)}
+    ${di(t('d_teiki'), r.best_teiki!=null ? fmt(r.best_teiki)+' ('+r.best_station+'駅)' : '')}
+    ${di(t('d_extra'), r.extra_monthly>0 ? r.extra_monthly_text : '')}
+    ${di(t('d_monthly'), fmt(r.monthly_total))}
+    ${di(t('d_remaining'), r.remaining!=null ? (r.remaining>=0?'+':'')+r.remaining.toLocaleString()+'円' : '')}
+  </div>`);
+
+  // ── Initial Cost ──
+  html += sec('\u{1F3E6}', 'sec_initial', `<table class="cost-table">
+    <tr><td>${t('deposit')} (${r.shikikin_text||'—'})</td><td>${fmt(r.shikikin)}</td></tr>
+    <tr><td>${t('key_money')} (${r.reikin_text||'—'})</td><td>${fmt(r.reikin)}</td></tr>
+    <tr><td>${t('guarantor_init')} (${r.hoshou_text||t('unknown')})</td><td>${r.hoshou_init?fmt(r.hoshou_init):t('need_confirm')}</td></tr>
+    <tr><td>${t('agency_fee')} (${r.chukai_text||'—'})</td><td>${fmt(r.chukai)}</td></tr>
+    <tr><td>${t('first_month')}</td><td>${fmt(r.first_month)}</td></tr>
+    <tr><td>${t('fire_insurance')}</td><td>${r.hoken?fmt(r.hoken):'—'}</td></tr>
+    <tr class="total"><td>${t('initial_total')}</td><td>${fmt(r.initial_cost)}</td></tr>
+  </table>`);
+
+  // ── Commute ──
+  const commuteMode = r.commute_mode_used ? (modeIcons[r.commute_mode_used]||'') + ' ' + r.commute_mode_used : '';
+  html += sec('\u{1F697}', 'sec_commute', `<div class="detail-grid">
+    ${di(t('d_commute_time'), r.commute_min!=null&&r.commute_min>=0 ? r.commute_min+t('min_unit') : '')}
+    ${di(t('d_commute_mode'), commuteMode)}
+    ${di(t('d_commute_route'), r.commute_route, true)}
+  </div>`);
+
+  // ── Building & Facilities ──
+  const bldg = r.building || {};
+  let bldgContent = `<div class="detail-grid">
+    ${di(t('d_structure'), bldg.structure)}
+    ${di(t('d_parking'), bldg.parking)}
+    ${di(t('d_units'), bldg.total_units)}
+    ${di(t('d_contract'), bldg.contract_period)}
+    ${di(t('d_guarantor'), bldg.guarantor, true)}
+    ${di(t('d_insurance'), bldg.insurance_detail || bldg.insurance)}
+    ${di(t('d_management'), bldg.management)}
+    ${di(t('d_transaction'), bldg.transaction_type)}
+  </div>`;
+  if (r.facilities) bldgContent += `<div style="margin-top:8px"><div class="dl">${t('d_facilities')}</div>${chips(r.facilities)}</div>`;
+  if (r.kitchen) bldgContent += `<div style="margin-top:6px"><div class="dl">${t('d_kitchen')}</div>${chips(r.kitchen)}</div>`;
+  if (r.bath) bldgContent += `<div style="margin-top:6px"><div class="dl">${t('d_bath')}</div>${chips(r.bath)}</div>`;
+  html += sec('\u{1F3E2}', 'sec_building', bldgContent);
+
+  // ── Surroundings ──
+  const surr = r.surroundings || {};
+  const surrMap = {shopping:'d_shopping', medical:'d_medical', school:'d_school', public:'d_public', finance:'d_finance', other_facilities:'d_other_fac'};
+  let surrContent = '';
+  for (const [key, labelKey] of Object.entries(surrMap)) {
+    if (surr[key] && surr[key].length) {
+      surrContent += `<div style="margin-bottom:6px"><div class="dl">${t(labelKey)}</div>${surrList(surr[key])}</div>`;
+    }
+  }
+  html += sec('\u{1F3EA}', 'sec_surround', surrContent);
+
+  // ── Remarks ──
+  html += sec('\u{1F4DD}', 'sec_remarks', r.remarks ? `<div class="detail-remarks">${r.remarks}</div>` : '');
+
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+</script>
+</body>
+</html>

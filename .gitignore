@@ -1,0 +1,35 @@
+# User data (config, scraped results, cache)
+config.json
+config.json.*
+data.json
+teiki_cache.json
+homes_full_result.json
+metro_teiki.json
+*.md
+!README.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+.pytest_cache/
+htmlcov/
+.coverage
